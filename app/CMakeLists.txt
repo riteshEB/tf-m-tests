@@ -106,10 +106,18 @@ if (${TFM_PSA_API})
         )
 
         # NS RTOS specific implementation of NS mailbox
-        target_sources(tfm_api_ns PRIVATE
-            $<$<BOOL:${TFM_MULTI_CORE_NS_OS}>:${NS_INTERFACE_DIR}/multi_core/tfm_ns_mailbox_rtos_api.c>
-            $<$<BOOL:${TEST_NS_MULTI_CORE}>:${NS_INTERFACE_DIR}/multi_core/tfm_ns_mailbox_test.c>
-        )
+        if (${TFM_PLATFORM} STREQUAL "cypress/psoc64")
+            target_sources(tfm_api_ns PRIVATE
+                $<$<BOOL:${TFM_MULTI_CORE_NS_OS}>:${NS_INTERFACE_DIR}/multi_core/tfm_ns_mailbox_rtos_api.c>
+                $<$<BOOL:${TEST_NS_MULTI_CORE}>:${NS_INTERFACE_DIR}/multi_core/tfm_ns_mailbox_test.c>
+                ${CMAKE_SOURCE_DIR}/platform/ext/target/${TFM_PLATFORM}/mailbox/platform_ns_mailbox.c
+            )
+        else()
+            target_sources(tfm_api_ns PRIVATE
+                $<$<BOOL:${TFM_MULTI_CORE_NS_OS}>:${NS_INTERFACE_DIR}/multi_core/tfm_ns_mailbox_rtos_api.c>
+                $<$<BOOL:${TEST_NS_MULTI_CORE}>:${NS_INTERFACE_DIR}/multi_core/tfm_ns_mailbox_test.c>
+            )
+        endif()
     else()
         target_sources(tfm_api_ns PRIVATE
            ${INTERFACE_SRC_DIR}/tfm_psa_ns_api.c
@@ -137,13 +145,24 @@ else()
     )
 endif()
 
-target_link_libraries(tfm_api_ns
+if (${TFM_PLATFORM} STREQUAL "cypress/psoc64")
+    target_link_libraries(tfm_api_ns
+        PUBLIC
+            tfm_ns_interface
+        PRIVATE
+            $<$<NOT:$<BOOL:${TFM_MULTI_CORE_TOPOLOGY}>>:tfm_s_veneers>
+            platform_ns
+            CMSIS_5_tfm_ns
+    )
+else()
+    target_link_libraries(tfm_api_ns
     PUBLIC
         tfm_ns_interface
     PRIVATE
         $<$<NOT:$<BOOL:${TFM_MULTI_CORE_TOPOLOGY}>>:tfm_s_veneers>
         platform_ns
-)
+    )
+endif()
 
 ############################# PSA test integration #############################
 
